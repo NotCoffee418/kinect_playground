@@ -26,6 +26,45 @@
             "externalConsole": false,
             "MIMode": "gdb",
             "preLaunchTask": "build_record_video"
+        },
+        {
+            "name": "Capture Point Cloud",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/debug/script_capture_pointcloud",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "build_capture_pointcloud"
+        },
+        {
+            "name": "Align Scans",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/debug/script_align_scans",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "build_align_scans"
+        },
+        {
+            "name": "Live Viewer",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/debug/script_live_viewer",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "build_live_viewer"
         }
     ]
 }

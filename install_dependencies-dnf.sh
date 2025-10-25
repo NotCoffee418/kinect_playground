@@ -7,7 +7,8 @@ sudo dnf install -y \
     glfw-devel \
     cmake \
     gcc-c++ \
-    git
+    git \
+    eigen3-devel
 
 echo "Downloading stb_image_write.h..."
 curl -O https://raw.githubusercontent.com/nothings/stb/master/stb_image_write.h

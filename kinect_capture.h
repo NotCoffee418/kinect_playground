@@ -4,6 +4,7 @@
 #include <libfreenect2/libfreenect2.hpp>
 #include <libfreenect2/frame_listener_impl.h>
 #include <libfreenect2/packet_pipeline.h>
+#include <libfreenect2/registration.h>
 
 struct FrameCapture
 {
@@ -33,6 +34,13 @@ struct IRFrame
     int width, height;
 };
 
+struct PointCloudData
+{
+    float *points;         // X, Y, Z coordinates (3 floats per point)
+    unsigned char *colors; // R, G, B colors (3 bytes per point)
+    int num_points;
+};
+
 // Get all three frames
 FrameCapture getFrame(libfreenect2::Freenect2Device *dev, libfreenect2::SyncMultiFrameListener &listener);
 void freeFrameCapture(FrameCapture &capture);
@@ -45,5 +53,12 @@ IRFrame getIRFrame(libfreenect2::Freenect2Device *dev, libfreenect2::SyncMultiFr
 void freeRGBFrame(RGBFrame &frame);
 void freeDepthFrame(DepthFrame &frame);
 void freeIRFrame(IRFrame &frame);
+
+// Point cloud functions
+PointCloudData getPointCloud(libfreenect2::Freenect2Device *dev,
+                             libfreenect2::SyncMultiFrameListener &listener,
+                             libfreenect2::Registration *registration);
+void freePointCloud(PointCloudData &cloud);
+void savePointCloudPLY(const char *filename, const PointCloudData &cloud);
 
 #endif

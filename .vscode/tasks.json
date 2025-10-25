@@ -43,6 +43,58 @@
             "group": "build",
             "problemMatcher": ["$gcc"],
             "dependsOn": ["make debug dir"]
+        },
+        {
+            "label": "build_capture_pointcloud",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-std=c++11",
+                "-g",
+                "script_capture_pointcloud.cpp",
+                "kinect_capture.cpp",
+                "-o",
+                "debug/script_capture_pointcloud",
+                "-lfreenect2"
+            ],
+            "group": "build",
+            "problemMatcher": ["$gcc"],
+            "dependsOn": ["make debug dir"]
+        },
+        {
+            "label": "build_align_scans",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-std=c++11",
+                "-g",
+                "script_align_scans.cpp",
+                "-o",
+                "debug/script_align_scans",
+                "-I/usr/include/eigen3"
+            ],
+            "group": "build",
+            "problemMatcher": ["$gcc"],
+            "dependsOn": ["make debug dir"]
+        },
+        {
+            "label": "build_live_viewer",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-std=c++11",
+                "-g",
+                "script_live_viewer.cpp",
+                "kinect_viewer.cpp",
+                "-o",
+                "debug/script_live_viewer",
+                "-lfreenect2",
+                "-lglfw",
+                "-lGL"
+            ],
+            "group": "build",
+            "problemMatcher": ["$gcc"],
+            "dependsOn": ["make debug dir"]
         }
     ]
 }

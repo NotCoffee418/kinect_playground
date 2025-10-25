@@ -1,5 +1,6 @@
 #include "kinect_capture.h"
 #include <iostream>
+#include <fstream>
 
 FrameCapture getFrame(libfreenect2::Freenect2Device *dev, libfreenect2::SyncMultiFrameListener &listener)
 {
@@ -171,4 +172,120 @@ void freeDepthFrame(DepthFrame &frame)
 void freeIRFrame(IRFrame &frame)
 {
     delete[] frame.data;
+}
+
+PointCloudData getPointCloud(libfreenect2::Freenect2Device *dev,
+                             libfreenect2::SyncMultiFrameListener &listener,
+                             libfreenect2::Registration *registration)
+{
+    libfreenect2::FrameMap frames;
+    PointCloudData cloud = {};
+
+    if (!listener.waitForNewFrame(frames, 10 * 1000))
+    {
+        std::cout << "Timeout waiting for frames!" << std::endl;
+        return cloud;
+    }
+
+    libfreenect2::Frame *rgb = frames[libfreenect2::Frame::Color];
+    libfreenect2::Frame *depth = frames[libfreenect2::Frame::Depth];
+
+    // Create undistorted and registered frames
+    libfreenect2::Frame undistorted(512, 424, 4);
+    libfreenect2::Frame registered(512, 424, 4);
+
+    registration->apply(rgb, depth, &undistorted, &registered);
+
+    // Count valid points (depth > 0)
+    float *depth_data = (float *)undistorted.data;
+    int valid_count = 0;
+    for (int i = 0; i < 512 * 424; i++)
+    {
+        if (depth_data[i] > 0 && depth_data[i] < 4500)
+        {
+            valid_count++;
+        }
+    }
+
+    cloud.num_points = valid_count;
+    cloud.points = new float[valid_count * 3];
+    cloud.colors = new unsigned char[valid_count * 3];
+
+    int point_idx = 0;
+    for (int y = 0; y < 424; y++)
+    {
+        for (int x = 0; x < 512; x++)
+        {
+            int idx = y * 512 + x;
+            float d = depth_data[idx];
+
+            // Skip invalid depth
+            if (d <= 0 || d >= 4500)
+                continue;
+
+            // Get 3D point using registration
+            float px, py, pz;
+            registration->getPointXYZ(&undistorted, y, x, px, py, pz);
+
+            cloud.points[point_idx * 3 + 0] = px;
+            cloud.points[point_idx * 3 + 1] = py;
+            cloud.points[point_idx * 3 + 2] = pz;
+
+            // Get color from registered RGB frame
+            unsigned char *rgb_data = registered.data;
+            cloud.colors[point_idx * 3 + 0] = rgb_data[idx * 4 + 2]; // R
+            cloud.colors[point_idx * 3 + 1] = rgb_data[idx * 4 + 1]; // G
+            cloud.colors[point_idx * 3 + 2] = rgb_data[idx * 4 + 0]; // B
+
+            point_idx++;
+        }
+    }
+
+    listener.release(frames);
+    return cloud;
+}
+
+void freePointCloud(PointCloudData &cloud)
+{
+    delete[] cloud.points;
+    delete[] cloud.colors;
+}
+
+void savePointCloudPLY(const char *filename, const PointCloudData &cloud)
+{
+    std::ofstream file(filename, std::ios::binary);
+
+    // Write PLY header
+    std::string header =
+        "ply\n"
+        "format binary_little_endian 1.0\n"
+        "element vertex " +
+        std::to_string(cloud.num_points) + "\n"
+                                           "property float x\n"
+                                           "property float y\n"
+                                           "property float z\n"
+                                           "property uchar red\n"
+                                           "property uchar green\n"
+                                           "property uchar blue\n"
+                                           "end_header\n";
+
+    file.write(header.c_str(), header.size());
+
+    // Write points in binary
+    for (int i = 0; i < cloud.num_points; i++)
+    {
+        float x = cloud.points[i * 3 + 0];
+        float y = cloud.points[i * 3 + 1];
+        float z = cloud.points[i * 3 + 2];
+
+        file.write((char *)&x, sizeof(float));
+        file.write((char *)&y, sizeof(float));
+        file.write((char *)&z, sizeof(float));
+        file.write((char *)&cloud.colors[i * 3 + 0], 1);
+        file.write((char *)&cloud.colors[i * 3 + 1], 1);
+        file.write((char *)&cloud.colors[i * 3 + 2], 1);
+    }
+
+    file.close();
+    std::cout << "Saved point cloud with " << cloud.num_points << " points to " << filename << std::endl;
 }
