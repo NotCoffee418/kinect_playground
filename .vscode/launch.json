@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Get Test Frames",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/debug/script_get_test_frames",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "build_get_test_frames"
+        }
+    ]
+}

@@ -1,0 +1,30 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "make debug dir",
+            "type": "shell",
+            "command": "mkdir",
+            "args": ["-p", "debug"]
+        },
+        {
+            "label": "build_get_test_frames",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-std=c++11",
+                "-g",
+                "script_get_test_frames.cpp",
+                "-o",
+                "debug/script_get_test_frames",
+                "-lfreenect2"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$gcc"],
+            "dependsOn": ["make debug dir"]
+        }
+    ]
+}
