@@ -95,6 +95,27 @@
             "group": "build",
             "problemMatcher": ["$gcc"],
             "dependsOn": ["make debug dir"]
+        },
+        {
+            "label": "build_live_slam",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-std=c++11",
+                "-g",
+                "-pthread",
+                "script_live_slam.cpp",
+                "kinect_viewer.cpp",
+                "-o",
+                "debug/script_live_slam",
+                "-lfreenect2",
+                "-lglfw",
+                "-lGL",
+                "-I/usr/include/eigen3"
+            ],
+            "group": "build",
+            "problemMatcher": ["$gcc"],
+            "dependsOn": ["make debug dir"]
         }
     ]
 }
