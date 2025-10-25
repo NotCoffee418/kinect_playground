@@ -15,6 +15,7 @@
                 "-std=c++11",
                 "-g",
                 "script_get_test_frames.cpp",
+                "kinect_capture.cpp",
                 "-o",
                 "debug/script_get_test_frames",
                 "-lfreenect2"
@@ -23,6 +24,23 @@
                 "kind": "build",
                 "isDefault": true
             },
+            "problemMatcher": ["$gcc"],
+            "dependsOn": ["make debug dir"]
+        },
+        {
+            "label": "build_record_video",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-std=c++11",
+                "-g",
+                "script_record_video.cpp",
+                "kinect_capture.cpp",
+                "-o",
+                "debug/script_record_video",
+                "-lfreenect2"
+            ],
+            "group": "build",
             "problemMatcher": ["$gcc"],
             "dependsOn": ["make debug dir"]
         }

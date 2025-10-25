@@ -13,6 +13,19 @@
             "externalConsole": false,
             "MIMode": "gdb",
             "preLaunchTask": "build_get_test_frames"
+        },
+        {
+            "name": "Record Video",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/debug/script_record_video",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "build_record_video"
         }
     ]
 }
