@@ -1,10 +1,12 @@
-﻿using System;
+﻿// file: MainWindow.xaml.cs
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Microsoft.Kinect;
+using Microsoft.Kinect.Face;
 
 namespace KinectViewer
 {
@@ -35,9 +37,18 @@ namespace KinectViewer
         // Coordinate mapper for body overlay
         private CoordinateMapper coordinateMapper;
 
+        // Face tracking
+        private const int MaxBodies = 6;
+        private FaceFrameSource[] faceFrameSources;
+        private FaceFrameReader[] faceFrameReaders;
+        private FaceFrameResult[] faceFrameResults;
+
         public MainWindow()
         {
             InitializeComponent();
+
+            // Ensure current directory is the executable folder so Face native assets (NuiDatabase) are found
+            try { Environment.CurrentDirectory = AppDomain.CurrentDomain.BaseDirectory; } catch { }
 
             // Get the default Kinect sensor
             kinectSensor = KinectSensor.GetDefault();
@@ -55,8 +66,34 @@ namespace KinectViewer
                     infraredFrameReader = kinectSensor.InfraredFrameSource.OpenReader();
                     bodyFrameReader = kinectSensor.BodyFrameSource.OpenReader();
 
-                    // Open the sensor
+                    // Open the sensor BEFORE creating face sources (avoids NuiDatabase load failures)
                     kinectSensor.Open();
+
+                    // Initialize Face API (one source/reader per body index)
+                    faceFrameSources = new FaceFrameSource[MaxBodies];
+                    faceFrameReaders = new FaceFrameReader[MaxBodies];
+                    faceFrameResults = new FaceFrameResult[MaxBodies];
+
+                    FaceFrameFeatures faceFrameFeatures =
+                        FaceFrameFeatures.BoundingBoxInColorSpace |
+                        FaceFrameFeatures.PointsInColorSpace |
+                        FaceFrameFeatures.RotationOrientation |
+                        FaceFrameFeatures.FaceEngagement |
+                        FaceFrameFeatures.Glasses |
+                        FaceFrameFeatures.Happy |
+                        FaceFrameFeatures.LeftEyeClosed |
+                        FaceFrameFeatures.RightEyeClosed |
+                        FaceFrameFeatures.LookingAway |
+                        FaceFrameFeatures.MouthMoved |
+                        FaceFrameFeatures.MouthOpen;
+
+                    for (int i = 0; i < MaxBodies; i++)
+                    {
+                        faceFrameSources[i] = new FaceFrameSource(kinectSensor, 0, faceFrameFeatures);
+                        faceFrameReaders[i] = faceFrameSources[i].OpenReader();
+                        // Optional: subscribe to reader events if you want push-style updates; we pull in body handler
+                        // faceFrameReaders[i].FrameArrived += FaceReader_FrameArrived;
+                    }
 
                     statusText.Text = "Kinect connected. Select feeds to enable.";
                 }
@@ -313,6 +350,31 @@ namespace KinectViewer
                 {
                     bodyFrame.GetAndRefreshBodyData(bodies);
 
+                    // Update face frame sources with current body tracking IDs
+                    if (faceFrameSources != null)
+                    {
+                        for (int i = 0; i < Math.Min(MaxBodies, bodies.Length); i++)
+                        {
+                            if (faceFrameSources[i] == null) continue;
+
+                            var body = bodies[i];
+                            if (body != null && body.IsTracked)
+                            {
+                                if (!faceFrameSources[i].IsTrackingIdValid)
+                                {
+                                    faceFrameSources[i].TrackingId = body.TrackingId;
+                                }
+                            }
+                            else
+                            {
+                                if (faceFrameSources[i].IsTrackingIdValid)
+                                {
+                                    faceFrameSources[i].TrackingId = 0;
+                                }
+                            }
+                        }
+                    }
+
                     skeletonCanvas.Children.Clear();
 
                     foreach (Body body in bodies)
@@ -320,6 +382,29 @@ namespace KinectViewer
                         if (body != null && body.IsTracked)
                         {
                             DrawBody(body);
+                        }
+                    }
+
+                    // Draw faces
+                    if (faceFrameReaders != null)
+                    {
+                        for (int i = 0; i < MaxBodies; i++)
+                        {
+                            var reader = faceFrameReaders[i];
+                            if (reader == null) continue;
+
+                            using (FaceFrame faceFrame = reader.AcquireLatestFrame())
+                            {
+                                if (faceFrame != null)
+                                {
+                                    faceFrameResults[i] = faceFrame.FaceFrameResult;
+                                }
+                            }
+
+                            if (faceFrameResults[i] != null)
+                            {
+                                DrawFace(faceFrameResults[i]);
+                            }
                         }
                     }
                 }
@@ -457,6 +542,81 @@ namespace KinectViewer
             skeletonCanvas.Children.Add(ellipse);
         }
 
+        private void DrawFace(FaceFrameResult faceResult)
+        {
+            if (faceResult == null)
+            {
+                return;
+            }
+
+            var faceBox = faceResult.FaceBoundingBoxInColorSpace;
+
+            // Draw face bounding box
+            Rectangle faceRect = new Rectangle
+            {
+                Width = Math.Max(0, faceBox.Right - faceBox.Left),
+                Height = Math.Max(0, faceBox.Bottom - faceBox.Top),
+                Stroke = new SolidColorBrush(Color.FromArgb(255, 255, 255, 0)), // Yellow
+                StrokeThickness = 3,
+                Fill = Brushes.Transparent
+            };
+
+            Canvas.SetLeft(faceRect, faceBox.Left);
+            Canvas.SetTop(faceRect, faceBox.Top);
+            skeletonCanvas.Children.Add(faceRect);
+
+            // Get face properties and rotation
+            var faceProperties = faceResult.FaceProperties;
+            var rotation = faceResult.FaceRotationQuaternion;
+
+            // Build face info text with labels for readability
+            string faceInfo = "";
+            if (faceProperties[FaceProperty.Happy] == DetectionResult.Yes)
+                faceInfo += "😊 Happy ";
+            if (faceProperties[FaceProperty.Engaged] == DetectionResult.Yes)
+                faceInfo += "👀 Engaged ";
+            if (faceProperties[FaceProperty.WearingGlasses] == DetectionResult.Yes)
+                faceInfo += "👓 Glasses ";
+            if (faceProperties[FaceProperty.MouthOpen] == DetectionResult.Yes)
+                faceInfo += "😮 Mouth Open ";
+            if (faceProperties[FaceProperty.LeftEyeClosed] == DetectionResult.Yes ||
+                faceProperties[FaceProperty.RightEyeClosed] == DetectionResult.Yes)
+                faceInfo += "😉 Eye Closed ";
+
+            // Calculate pitch, yaw, roll from quaternion
+            double pitch, yaw, roll;
+            ExtractFaceRotationInDegrees(rotation, out pitch, out yaw, out roll);
+            faceInfo += $"\nP:{pitch:F0}° Y:{yaw:F0}° R:{roll:F0}°";
+
+            // Draw face info text
+            TextBlock faceText = new TextBlock
+            {
+                Text = faceInfo,
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 255, 255, 0)),
+                Background = new SolidColorBrush(Color.FromArgb(128, 0, 0, 0)),
+                FontSize = 14,
+                FontWeight = FontWeights.Bold,
+                Padding = new Thickness(4)
+            };
+
+            Canvas.SetLeft(faceText, faceBox.Left);
+            Canvas.SetTop(faceText, faceBox.Top - 40);
+            skeletonCanvas.Children.Add(faceText);
+        }
+
+        private void ExtractFaceRotationInDegrees(Vector4 rotQuaternion, out double pitch, out double yaw, out double roll)
+        {
+            double x = rotQuaternion.X;
+            double y = rotQuaternion.Y;
+            double z = rotQuaternion.Z;
+            double w = rotQuaternion.W;
+
+            // Convert quaternion to Euler angles
+            pitch = Math.Atan2(2 * ((y * z) + (w * x)), (w * w) - (x * x) - (y * y) + (z * z)) / Math.PI * 180.0;
+            yaw = Math.Asin(2 * ((w * y) - (x * z))) / Math.PI * 180.0;
+            roll = Math.Atan2(2 * ((x * y) + (w * z)), (w * w) + (x * x) - (y * y) - (z * z)) / Math.PI * 180.0;
+        }
+
         private void DrawHandState(Body body, HandState referenceState, HandState handState, Joint handJoint)
         {
             if (handJoint.TrackingState == TrackingState.NotTracked)
@@ -544,6 +704,30 @@ namespace KinectViewer
             {
                 bodyFrameReader.Dispose();
                 bodyFrameReader = null;
+            }
+
+            if (faceFrameReaders != null)
+            {
+                for (int i = 0; i < MaxBodies; i++)
+                {
+                    if (faceFrameReaders[i] != null)
+                    {
+                        faceFrameReaders[i].Dispose();
+                        faceFrameReaders[i] = null;
+                    }
+                }
+            }
+
+            if (faceFrameSources != null)
+            {
+                for (int i = 0; i < MaxBodies; i++)
+                {
+                    if (faceFrameSources[i] != null)
+                    {
+                        faceFrameSources[i].Dispose();
+                        faceFrameSources[i] = null;
+                    }
+                }
             }
 
             if (kinectSensor != null)
