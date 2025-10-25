@@ -1,0 +1,38 @@
+<Window x:Class="KinectViewer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Kinect Multi-Feed Viewer" Height="720" Width="1280"
+        Closing="Window_Closing">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Main display area -->
+        <Grid Grid.Row="0">
+            <Image x:Name="colorImage" Stretch="Uniform"/>
+            <Image x:Name="depthImage" Stretch="Uniform"/>
+            <Image x:Name="infraredImage" Stretch="Uniform"/>
+            <Canvas x:Name="skeletonCanvas" Background="Transparent"/>
+        </Grid>
+        
+        <!-- Control panel -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Background="#222">
+            <CheckBox x:Name="colorCheck" Content="Color" Foreground="White" 
+                      Margin="10" VerticalAlignment="Center" 
+                      Checked="ColorCheck_Changed" Unchecked="ColorCheck_Changed"/>
+            <CheckBox x:Name="depthCheck" Content="Depth" Foreground="White" 
+                      Margin="10,0" VerticalAlignment="Center"
+                      Checked="DepthCheck_Changed" Unchecked="DepthCheck_Changed"/>
+            <CheckBox x:Name="infraredCheck" Content="Infrared" Foreground="White" 
+                      Margin="10,0" VerticalAlignment="Center"
+                      Checked="InfraredCheck_Changed" Unchecked="InfraredCheck_Changed"/>
+            <CheckBox x:Name="bodyCheck" Content="Body Tracking" Foreground="White" 
+                      Margin="10,0" VerticalAlignment="Center"
+                      Checked="BodyCheck_Changed" Unchecked="BodyCheck_Changed"/>
+            <TextBlock x:Name="statusText" Foreground="LightGray" Margin="20,0" 
+                       VerticalAlignment="Center" Text="Ready"/>
+        </StackPanel>
+    </Grid>
+</Window>
